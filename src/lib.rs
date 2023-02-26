@@ -1,9 +1,11 @@
 mod core;
+pub use crate::core::*;
 
-pub use crate::core::{AsRegex, Error, Result};
 use regex::Regex;
 
-pub fn create_reg_exp(input: impl AsRegex) -> core::Result<Regex> {
+/// Returns the regex, which represents the given statement.
+/// This is only for convenience and compatibility with magic-regex from npm.
+pub fn create_reg_exp(input: impl AsRegex) -> Result<Regex> {
     input.as_regex()
 }
 
@@ -18,7 +20,7 @@ mod tests {
         let input = Exactly(Digit);
         let regex = create_reg_exp(input).unwrap();
         assert!(regex.is_match("1"));
-        assert!(regex.is_match("12"));
+        assert!(!regex.is_match("12"));
         assert!(regex.is_match("1 2"));
     }
 

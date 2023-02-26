@@ -1,8 +1,7 @@
-use crate::core::traits::Condition;
-use crate::{AsRegex, Result};
+use crate::{AsRegex, Condition, Result};
 use regex::Regex;
 
-pub enum Type<'a> {
+pub enum Type {
     Digit,
     NotDigit,
     WordBoundary,
@@ -10,7 +9,8 @@ pub enum Type<'a> {
     Word,
     WordChar,
     NotWordChar,
-    Text(&'a str),
+    Text(String),
+    Options(String),
     Char,
     Whitespace,
     NotWhitespace,
@@ -28,9 +28,10 @@ pub enum Type<'a> {
     NotCarriageReturn,
 }
 
-impl<'a> AsRegex for Type<'a> {}
-impl<'a> ToString for Type<'a> {
+impl AsRegex for Type {}
+impl ToString for Type {
     fn to_string(&self) -> String {
+        let txt;
         match self {
             Type::Digit => r"\d",
             Type::NotDigit => r"\D",
@@ -55,6 +56,10 @@ impl<'a> ToString for Type<'a> {
             Type::NotLinefeed => r"^\n",
             Type::CarriageReturn => r"\r",
             Type::NotCarriageReturn => r"^\r",
+            Type::Options(options) => {
+                txt = format!("[{}]", options);
+                txt.as_str()
+            }
         }
         .to_string()
     }
@@ -63,6 +68,16 @@ impl<'a> ToString for Type<'a> {
 /// Returns the opposite of the given type.
 /// For example, `Type::Digit` will return `Type::NotDigit`.
 /// Returns the same type if it is not a type that can be negated.
+///
+/// Panics, if the given type is `Type::Options` and the given string is empty.
+///
+/// # Examples
+/// ```
+/// use magic_regexp::{OneOrMore, not, Options};
+///
+/// let input = OneOrMore(not(not(Options("01".to_string()))));
+/// assert_eq!(input.to_string(), r"([01]+)");
+/// ```
 pub fn not(t: Type) -> Type {
     match t {
         Type::Digit => Type::NotDigit,
@@ -85,6 +100,19 @@ pub fn not(t: Type) -> Type {
         Type::NotLinefeed => Type::Linefeed,
         Type::CarriageReturn => Type::NotCarriageReturn,
         Type::NotCarriageReturn => Type::CarriageReturn,
+        Type::Text(t) => Type::Text(format!("^{}", t)),
+        Type::Options(t) => {
+            if let Some(first) = t.chars().next() {
+                let opt = if first == '^' {
+                    t[1..].to_string()
+                } else {
+                    format!("^{}", t)
+                };
+                Type::Options(opt)
+            } else {
+                panic!("Invalid options: {}", t);
+            }
+        }
         _ => t,
     }
 }
@@ -99,7 +127,7 @@ pub fn not(t: Type) -> Type {
 ///
 /// let regex = create_reg_exp(Input::Exactly(Type::Digit)).unwrap();
 /// assert!(regex.is_match("1"));
-/// assert!(regex.is_match("12"));
+/// assert!(!regex.is_match("12"));
 /// assert!(regex.is_match("1 2"));
 /// ```
 ///
@@ -124,51 +152,63 @@ pub fn not(t: Type) -> Type {
 /// assert!(regex.is_match("a"));
 /// assert!(regex.is_match("1 2"));
 /// ```
-pub enum Input<'a> {
-    OneOrMore(Type<'a>),
-    Exactly(Type<'a>),
-    Maybe(Type<'a>),
+pub enum Input {
+    OneOrMore(Type),
+    Exactly(Type),
+    Maybe(Type),
 }
 
-impl<'a> ToString for Input<'a> {
+impl ToString for Input {
     /// Returns a string representation of the input.
     /// For example, `Input::Exactly(Type::Digit)` will return `\d`.
     ///
     /// # Example
     /// ```
-    /// use magic_regexp::{Input, Type};
+    /// use magic_regexp::{Exactly, Digit, AsRegex, create_reg_exp};
     ///
-    /// let input = Input::Exactly(Type::Digit);
-    /// assert_eq!(input.to_string(), r"\d");
+    /// let regex = create_reg_exp(Exactly(Digit)).unwrap();
+    /// assert!(regex.is_match("1"));
+    /// assert!(!regex.is_match("12"));
     /// ```
     ///
     /// # Example
     /// ```
     /// use magic_regexp::{Input, Type};
     ///
-    /// let input = Input::Exactly(Type::Text("abc"));
+    /// let input = Input::Exactly(Type::Text("abc".into()));
     /// assert_eq!(input.to_string(), "abc");
-    /// let input = Input::Exactly(Type::Text("."));
+    /// let input = Input::Exactly(Type::Text(".".to_string()));
     /// assert_eq!(input.to_string(), r"\.");
+    /// ```
+    ///
+    /// # Example
+    /// ```
+    /// use magic_regexp::{not, OneOrMore, Options};
+    /// use regex::Regex;
+    ///
+    /// let input = OneOrMore(not(Options("01".to_string())));
+    /// assert_eq!(input.to_string(), r"([^01]+)");
+    /// let re = Regex::new(&input.to_string()).unwrap();
+    /// assert_eq!(re.replace("1078910", ""), "1010");
     /// ```
     fn to_string(&self) -> String {
         const ESCAPE_REPLACE_RE: &str = r"[.*+?^${}()|[\\]\\/]";
 
         match self {
             Input::OneOrMore(t) => format!("({}+)", t.to_string()),
-            Input::Exactly(t) => match *t {
+            Input::Exactly(t) => match t {
                 Type::Text(t) => Regex::new(ESCAPE_REPLACE_RE)
                     .expect("Invalid replace_all regex")
-                    .replace_all(t, r"\$&")
+                    .replace_all(t, r"\$0")
                     .to_string(),
-                _ => t.to_string(),
+                _ => format!(r"\b{}\b", t.to_string()),
             },
             Input::Maybe(t) => format!("({}?)", t.to_string()),
         }
     }
 }
 
-impl<'a> AsRegex for Input<'a> {
+impl AsRegex for Input {
     fn as_regex(&self) -> Result<Regex> {
         Ok(Regex::new(&self.to_string())?)
     }
@@ -178,26 +218,17 @@ impl<'a> AsRegex for Input<'a> {
 ///
 /// # Example
 /// ```
-/// use magic_regexp::{create_reg_exp, Input, Type};
+/// use magic_regexp::{create_reg_exp, Condition, Exactly, Digit, LetterLowercase};
 ///
-/// let regex = create_reg_exp(Input::Exactly(Type::Digit).and(Input::Exactly(Type::Digit))).unwrap();
-/// assert!(regex.is_match("12"));
-/// assert!(regex.is_match("1 2"));
-/// assert!(!regex.is_match("1"));
-/// assert!(!regex.is_match("a"));
-/// ```
-///
-/// # Example
-/// ```
-/// use magic_regexp::{create_reg_exp, Input, Type};
-///
-/// let regex = create_reg_exp((Input::Exactly(Type::Digit)).or(Input::Exactly(Type::Letter))).unwrap();
+/// let regex = create_reg_exp(Exactly(Digit).or(Exactly(LetterLowercase))).unwrap();
 /// assert!(regex.is_match("1"));
 /// assert!(regex.is_match("a"));
+/// assert!(!regex.is_match("A"));
 /// assert!(!regex.is_match("12"));
 /// assert!(!regex.is_match("1a"));
+/// assert!(regex.is_match("1 a"));
 /// ```
-impl<'a> Condition for Input<'a> {}
+impl Condition for Input {}
 
 impl AsRegex for Regex {}
 impl Condition for Regex {}

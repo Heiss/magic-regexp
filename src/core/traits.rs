@@ -9,6 +9,8 @@ pub enum Error {
 
 pub type Result<T> = std::result::Result<T, Error>;
 
+/// A trait, which allows to convert something to a regex.
+/// Mostly needed to work with this lib and Regex crate.
 pub trait AsRegex: ToString {
     /// Returns the regex, which represents the wanted statement.
     fn as_regex(&self) -> Result<Regex> {
@@ -17,6 +19,8 @@ pub trait AsRegex: ToString {
     }
 }
 
+/// A trait, which allows to chain regex statements with conditions.
+/// Import this, if you want to use the `and`, `or` and `optionally` methods and chain statements.
 pub trait Condition: AsRegex + Sized {
     /// Returns the regex, which chains the two given statements with an `and` condition.
     fn and(self, other: impl AsRegex) -> Regex {
