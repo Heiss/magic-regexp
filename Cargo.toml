@@ -5,6 +5,7 @@ edition = "2021"
 authors = ["Peter Heiss <peter.heiss@uni-muenster.de"]
 description = "A library for creating regular expressions with ease"
 repository = "https://github.com/Heiss/magic-regexp"
+documentation = "https://heiss.github.io/magic-regexp/magic_regexp/index.html"
 license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
