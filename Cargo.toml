@@ -7,7 +7,7 @@ description = "A library for creating regular expressions with ease"
 repository = "https://github.com/Heiss/magic-regexp"
 documentation = "https://heiss.github.io/magic-regexp/magic_regexp/index.html"
 license = "MIT"
-keywords = ["regex", "regular expression", "magic", "magic-regexp"]
+keywords = ["regex", "regular-expression", "magic", "magic-regexp"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
