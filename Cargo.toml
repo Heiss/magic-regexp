@@ -2,6 +2,10 @@
 name = "magic-regexp"
 version = "0.1.0"
 edition = "2021"
+authors = ["Peter Heiss <peter.heiss@uni-muenster.de"]
+description = "A library for creating regular expressions with ease"
+repository = "https://github.com/Heiss/magic-regexp"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
