@@ -1,6 +1,16 @@
 use crate::{AsRegex, Condition, Result};
 use regex::Regex;
 
+/// Represents a regex type. This enum is used to create the smallest regex statement.
+/// For example, `Type::Digit` will create the regex `\d`.
+///
+/// # Examples
+/// ```
+/// use magic_regexp::{OneOrMore, Type::Digit};
+///
+/// let input = OneOrMore(Digit);
+/// assert_eq!(input.to_string(), r"(\d+)"); // Note that the regex is wrapped in parentheses.
+/// ```
 pub enum Type {
     Digit,
     NotDigit,
@@ -156,6 +166,7 @@ pub enum Input {
     OneOrMore(Type),
     Exactly(Type),
     Maybe(Type),
+    Times(Type, usize),
 }
 
 impl ToString for Input {
@@ -204,6 +215,7 @@ impl ToString for Input {
                 _ => format!(r"\b{}\b", t.to_string()),
             },
             Input::Maybe(t) => format!("({}?)", t.to_string()),
+            Input::Times(t, n) => format!("{}{{{}}}", t.to_string(), n),
         }
     }
 }
@@ -229,6 +241,21 @@ impl AsRegex for Input {
 /// assert!(regex.is_match("1 a"));
 /// ```
 impl Condition for Input {}
+
+impl Input {
+    /// Returns the input as a grouped regex.
+    ///
+    /// # Example
+    /// ```
+    /// use magic_regexp::{create_reg_exp, Condition, Exactly, Digit, LetterLowercase, OneOrMore};
+    ///
+    /// let regex = create_reg_exp(OneOrMore(Digit).grouped_as("digits")).unwrap();
+    /// assert_eq!(&regex.captures("1").unwrap()["digits"], "1");
+    /// ```
+    pub fn grouped_as(&self, name: &str) -> Regex {
+        Regex::new(&format!(r"(?P<{}>{})", name, self.to_string())).expect("Invalid regex")
+    }
+}
 
 impl AsRegex for Regex {}
 impl Condition for Regex {}

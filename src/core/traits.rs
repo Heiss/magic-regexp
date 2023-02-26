@@ -2,11 +2,15 @@ use regex::Regex;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
+/// An error, which can occur while using this crate.
+/// Mostly used to wrap errors from the Regex crate.
 pub enum Error {
     #[error("An regex error occurred")]
     RegexError(#[from] regex::Error),
 }
 
+/// A type, which is used to return results from this crate.
+/// Mostly used to wrap results from the Regex crate.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// A trait, which allows to convert something to a regex.
