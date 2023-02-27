@@ -1,13 +1,14 @@
 [package]
 name = "magic-regexp"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Peter Heiss <peter.heiss@uni-muenster.de"]
 description = "A library for creating regular expressions with ease"
 repository = "https://github.com/Heiss/magic-regexp"
-documentation = "https://heiss.github.io/magic-regexp/magic_regexp/index.html"
+documentation = "https://docs.rs/magic-regexp/latest/magic_regexp/"
 license = "MIT"
 keywords = ["regex", "regular-expression", "magic", "magic-regexp"]
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
