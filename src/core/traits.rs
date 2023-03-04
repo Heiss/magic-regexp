@@ -38,6 +38,6 @@ pub trait Condition: AsRegex + Sized {
     }
     /// Returns the regex, which sets the given statement to optional.
     fn optionally(self) -> Regex {
-        Regex::new(&format!("({})?", self.to_string())).expect("Invalid regex (optionally)")
+        Regex::new(&format!("(?:{})?", self.to_string())).expect("Invalid regex (optionally)")
     }
 }
